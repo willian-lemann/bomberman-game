@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bomberman</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #1a1a2e;
+        font-family: system-ui, sans-serif;
+      }
+      #stage {
+        position: relative;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      #menu {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: rgba(10, 10, 25, 0.85);
+      }
+      #menu[hidden] {
+        display: none;
+      }
+      #menu h1 {
+        color: #fde047;
+        font-size: 52px;
+        margin: 0;
+        text-shadow: 3px 3px 0 #b45309;
+      }
+      #menu button {
+        font-size: 20px;
+        font-weight: 600;
+        padding: 14px 36px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: #f97316;
+        color: #fff;
+        width: 320px;
+      }
+      #menu button:hover {
+        background: #fb923c;
+      }
+      #join-row {
+        display: flex;
+        gap: 8px;
+        width: 320px;
+      }
+      #join-row input {
+        flex: 1;
+        min-width: 0;
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 6px;
+        padding: 12px;
+        border: 2px solid #f97316;
+        border-radius: 10px;
+        background: #111827;
+        color: #fde047;
+      }
+      #join-row button {
+        width: auto;
+        padding: 12px 20px;
+      }
+      #menu p {
+        color: #9ca3af;
+        font-size: 14px;
+        margin: 0;
+        text-align: center;
+        line-height: 1.6;
+      }
+      #status {
+        color: #e5e7eb;
+        font-size: 16px;
+        min-height: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="game"></canvas>
+      <div id="menu">
+        <h1>💣 BOMBERMAN</h1>
+        <button id="btn-local">Local — 2 no teclado</button>
+        <button id="btn-quick">Partida rápida online</button>
+        <button id="btn-create">Criar sala privada</button>
+        <div id="join-row">
+          <input
+            id="join-code"
+            maxlength="4"
+            placeholder="CÓDIGO"
+            autocomplete="off"
+          />
+          <button id="btn-join">Entrar</button>
+        </div>
+        <p>
+          Local: P1 usa WASD + Espaço, P2 usa setas + Enter<br />
+          Online: WASD ou setas + Espaço (cada um no seu navegador)
+        </p>
+      </div>
+    </div>
+    <div id="status"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
