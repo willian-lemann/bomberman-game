@@ -20,11 +20,22 @@ export function createKeyboard(): { getInputs(): PlayerInput[] } {
   window.addEventListener('keydown', (e) => {
     if (!e.repeat) justPressed.add(e.code);
     pressed.add(e.code);
-    // evita a página rolar com as setas e o espaço
-    if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
+    // evita a página rolar (setas/espaço) e — crucial — impede que Espaço e
+    // Enter "cliquem" o último botão do menu que ficou com foco
+    if (
+      e.code.startsWith('Arrow') ||
+      e.code === 'Space' ||
+      e.code === 'Enter' ||
+      e.code === 'NumpadEnter'
+    ) {
+      e.preventDefault();
+    }
   });
   window.addEventListener('keyup', (e) => pressed.delete(e.code));
-  window.addEventListener('blur', () => pressed.clear());
+  window.addEventListener('blur', () => {
+    pressed.clear();
+    justPressed.clear();
+  });
 
   return {
     getInputs: () => {

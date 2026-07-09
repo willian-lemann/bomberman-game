@@ -25,6 +25,9 @@ export type LobbyRequest =
   | { type: 'create'; name: string }
   | { type: 'join'; code: string };
 
+// Uma sessão online por vez: iniciar outra mata o loop e o socket da anterior
+let sessionCounter = 0;
+
 /** Base HTTP do servidor do jogo (para o endpoint /rooms) */
 export function serverHttpBase(): string {
   return import.meta.env.DEV ? `http://${location.hostname}:3001` : '';
@@ -56,6 +59,7 @@ export function startOnline(
   const url = import.meta.env.DEV
     ? `ws://${location.hostname}:3001`
     : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+  const session = ++sessionCounter;
   const ws = new WebSocket(url);
   const keyboard = createKeyboard();
   const spinner = document.querySelector<HTMLElement>('#spinner');
@@ -298,6 +302,12 @@ export function startOnline(
   let accumulator = 0;
 
   function frame(now: number): void {
+    // outra sessão começou (voltou ao menu e reentrou): esta morre aqui
+    if (session !== sessionCounter) {
+      if (ws.readyState === WebSocket.OPEN) ws.close();
+      return;
+    }
+
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
@@ -309,7 +319,6 @@ export function startOnline(
       left: a.left || b.left,
       right: a.right || b.right,
     };
-    if (a.bomb || b.bomb) bombLatch = true;
 
     const latest = snapshots[snapshots.length - 1];
     const playing =
@@ -318,6 +327,10 @@ export function startOnline(
       predicted !== null &&
       latest !== undefined &&
       latest.state.phase === 'playing';
+
+    // bomba só arma DURANTE a partida — tecla apertada no lobby/fim de jogo
+    // não pode virar bomba plantada no primeiro segundo da rodada
+    if (playing && (a.bomb || b.bomb)) bombLatch = true;
 
     if (playing) {
       accumulator += dt;
@@ -339,6 +352,7 @@ export function startOnline(
       }
     } else {
       accumulator = 0;
+      bombLatch = false;
     }
 
     // #3: drena a correção suavemente (~80ms para sumir)

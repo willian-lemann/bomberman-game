@@ -1,11 +1,11 @@
-import './env'; // PRIMEIRO import: carrega o .env antes de qualquer leitura
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
-import { extname, join, normalize } from 'node:path';
-import { WebSocketServer, WebSocket } from 'ws';
-import { createGame, update } from '../src/game/game';
-import type { GameState, Grid, PlayerInput } from '../src/game/types';
+import "./env"; // PRIMEIRO import: carrega o .env antes de qualquer leitura
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import { extname, join, normalize } from "node:path";
+import { WebSocketServer, WebSocket } from "ws";
+import { createGame, update } from "../src/game/game";
+import type { GameState, Grid, PlayerInput } from "../src/game/types";
 import {
   clearRooms,
   deleteRoom,
@@ -13,7 +13,7 @@ import {
   listRooms,
   recordMatch,
   upsertRoom,
-} from './db';
+} from "./db";
 
 const PORT = Number(process.env.PORT) || 3001;
 const TICK_MS = 1000 / 60;
@@ -21,11 +21,11 @@ const TICK_MS = 1000 / 60;
 const BROADCAST_EVERY = 2;
 
 /** Estado transmitido por tick: a grade viaja à parte, só quando muda */
-type Snapshot = Omit<GameState, 'grid'>;
+type Snapshot = Omit<GameState, "grid">;
 
 type ServerMessage =
   | {
-      type: 'lobby';
+      type: "lobby";
       players: number;
       max: number;
       countdown: number | null;
@@ -33,12 +33,12 @@ type ServerMessage =
       /** o primeiro da sala é o dono: só ele pode dar o "começar" */
       host: boolean;
     }
-  | { type: 'roomCreated'; code: string }
-  | { type: 'error'; message: string }
-  | { type: 'start'; playerId: number }
-  | { type: 'grid'; grid: Grid }
-  | { type: 'state'; state: Snapshot; acks: number[] }
-  | { type: 'playerLeft'; playerId: number };
+  | { type: "roomCreated"; code: string }
+  | { type: "error"; message: string }
+  | { type: "start"; playerId: number }
+  | { type: "grid"; grid: Grid }
+  | { type: "state"; state: Snapshot; acks: number[] }
+  | { type: "playerLeft"; playerId: number };
 
 interface Client {
   socket: WebSocket;
@@ -94,7 +94,7 @@ class Room {
       name: this.name,
       players: sockets.length,
       max: sockets.length,
-      status: 'playing',
+      status: "playing",
     });
     console.log(
       `Sala "${this.name}" iniciada com ${sockets.length} jogadores (ativas: ${activeRooms.size})`,
@@ -102,14 +102,14 @@ class Room {
 
     this.clients.forEach((client, i) => {
       // remove os handlers do lobby: daqui em diante a sala cuida do socket
-      client.socket.removeAllListeners('message');
-      client.socket.removeAllListeners('close');
-      send(client.socket, { type: 'start', playerId: i + 1 });
-      client.socket.on('message', (raw) => this.onMessage(i, raw.toString()));
-      client.socket.on('close', () => this.onLeave(i));
+      client.socket.removeAllListeners("message");
+      client.socket.removeAllListeners("close");
+      send(client.socket, { type: "start", playerId: i + 1 });
+      client.socket.on("message", (raw) => this.onMessage(i, raw.toString()));
+      client.socket.on("close", () => this.onLeave(i));
     });
 
-    this.broadcast({ type: 'grid', grid: this.state.grid });
+    this.broadcast({ type: "grid", grid: this.state.grid });
 
     this.interval = setInterval(() => this.tick(), TICK_MS);
   }
@@ -122,7 +122,7 @@ class Room {
       return;
     }
 
-    if (msg.type === 'input' && msg.input) {
+    if (msg.type === "input" && msg.input) {
       const client = this.clients[index];
       client.queue.push({
         seq: Number(msg.seq) || 0,
@@ -137,13 +137,13 @@ class Room {
       if (msg.input.bomb) client.pendingBomb = true;
       // cliente travado/malicioso não acumula passos extras de movimento
       if (client.queue.length > 120) client.queue.shift();
-    } else if (msg.type === 'restart' && this.state.phase === 'over') {
+    } else if (msg.type === "restart" && this.state.phase === "over") {
       this.state = createGame(this.clients.length);
       // quem desconectou não volta na revanche
       this.clients.forEach((c, i) => {
         if (!c.connected) this.state.players[i].alive = false;
       });
-      this.broadcast({ type: 'grid', grid: this.state.grid }); // mapa novo
+      this.broadcast({ type: "grid", grid: this.state.grid }); // mapa novo
     }
   }
 
@@ -160,11 +160,11 @@ class Room {
       return input;
     });
 
-    const wasPlaying = this.state.phase === 'playing';
+    const wasPlaying = this.state.phase === "playing";
     update(this.state, TICK_MS / 1000, inputs);
 
     // rodada terminou neste tick: grava no histórico
-    if (wasPlaying && this.state.phase === 'over') {
+    if (wasPlaying && this.state.phase === "over") {
       recordMatch({
         roomCode: this.code,
         roomName: this.name,
@@ -180,7 +180,7 @@ class Room {
     // a grade fica de fora: o cliente deriva destruições das explosões
     const { grid: _grid, ...snapshot } = this.state;
     this.broadcast({
-      type: 'state',
+      type: "state",
       state: snapshot,
       acks: this.clients.map((c) => c.lastSeq),
     });
@@ -192,13 +192,12 @@ class Room {
     }
   }
 
-
   private onLeave(index: number): void {
     this.clients[index].connected = false;
     // quem saiu morre em jogo — se sobrar um vivo, a vitória sai no próximo tick
     const player = this.state.players[index];
     if (player) player.alive = false;
-    this.broadcast({ type: 'playerLeft', playerId: index + 1 });
+    this.broadcast({ type: "playerLeft", playerId: index + 1 });
 
     // ninguém mais na sala: ela é destruída e sai do banco
     const remaining = this.clients.filter((c) => c.connected).length;
@@ -215,7 +214,7 @@ class Room {
         name: this.name,
         players: remaining,
         max: this.clients.length,
-        status: 'playing',
+        status: "playing",
       });
     }
   }
@@ -246,10 +245,10 @@ interface PendingRoom {
 function persistPending(pending: PendingRoom): void {
   upsertRoom({
     code: pending.code,
-    name: pending.name ?? 'Partida rápida',
+    name: pending.name ?? "Partida rápida",
     players: pending.sockets.length,
     max: MAX_PLAYERS,
-    status: 'waiting',
+    status: "waiting",
   });
 }
 
@@ -259,7 +258,7 @@ let quickRoom: PendingRoom | null = null;
 // Salas privadas em formação, por código
 const openRooms = new Map<string, PendingRoom>();
 
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // sem I e O (confundem com 1 e 0)
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sem I e O (confundem com 1 e 0)
 
 function generateCode(): string {
   let code: string;
@@ -267,7 +266,7 @@ function generateCode(): string {
     code = Array.from(
       { length: 4 },
       () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)],
-    ).join('');
+    ).join("");
   } while (openRooms.has(code) || quickRoom?.code === code);
   return code;
 }
@@ -275,7 +274,7 @@ function generateCode(): string {
 function broadcastLobby(pending: PendingRoom): void {
   pending.sockets.forEach((socket, i) => {
     send(socket, {
-      type: 'lobby',
+      type: "lobby",
       players: pending.sockets.length,
       max: MAX_PLAYERS,
       countdown: pending.timer !== null ? COUNTDOWN_MS / 1000 : null,
@@ -295,10 +294,12 @@ function unregisterPending(pending: PendingRoom): void {
 
 function startPending(pending: PendingRoom): void {
   unregisterPending(pending);
-  const sockets = pending.sockets.filter((s) => s.readyState === WebSocket.OPEN);
+  const sockets = pending.sockets.filter(
+    (s) => s.readyState === WebSocket.OPEN,
+  );
   if (sockets.length >= 2) {
     // o Room assume a linha da sala no banco (status vira 'playing')
-    new Room(sockets, pending.name ?? 'Partida rápida', pending.code);
+    new Room(sockets, pending.name ?? "Partida rápida", pending.code);
   } else {
     deleteRoom(pending.code); // esvaziou antes de começar
   }
@@ -320,9 +321,10 @@ function joinPending(pending: PendingRoom, socket: WebSocket): void {
 }
 
 function leavePending(socket: WebSocket): void {
-  const pendings = quickRoom !== null
-    ? [quickRoom, ...openRooms.values()]
-    : [...openRooms.values()];
+  const pendings =
+    quickRoom !== null
+      ? [quickRoom, ...openRooms.values()]
+      : [...openRooms.values()];
   const pending = pendings.find((p) => p.sockets.includes(socket));
   if (pending === undefined) return;
 
@@ -355,42 +357,48 @@ function onLobbyMessage(socket: WebSocket, raw: string): void {
   }
 
   switch (msg.type) {
-    case 'quick':
+    case "quick":
       if (findPending(socket) !== undefined) return; // já está numa sala
       if (quickRoom === null) {
-        quickRoom = { sockets: [], timer: null, code: generateCode(), name: null };
+        quickRoom = {
+          sockets: [],
+          timer: null,
+          code: generateCode(),
+          name: null,
+        };
       }
       joinPending(quickRoom, socket);
       break;
 
-    case 'create': {
+    case "create": {
       if (findPending(socket) !== undefined) return;
       const code = generateCode();
       const name =
-        (typeof msg.name === 'string' ? msg.name.trim().slice(0, 24) : '') ||
+        (typeof msg.name === "string" ? msg.name.trim().slice(0, 24) : "") ||
         `Sala ${code}`;
       const pending: PendingRoom = { sockets: [], timer: null, code, name };
       openRooms.set(code, pending);
-      send(socket, { type: 'roomCreated', code });
+      send(socket, { type: "roomCreated", code });
       joinPending(pending, socket);
       break;
     }
 
-    case 'join': {
+    case "join": {
       if (findPending(socket) !== undefined) return;
-      const code = (msg.code ?? '').trim().toUpperCase();
+      const code = (msg.code ?? "").trim().toUpperCase();
       // a partida rápida em formação também aparece na lista e aceita entrada
       const pending =
-        openRooms.get(code) ?? (quickRoom?.code === code ? quickRoom : undefined);
+        openRooms.get(code) ??
+        (quickRoom?.code === code ? quickRoom : undefined);
       if (pending === undefined) {
-        send(socket, { type: 'error', message: `Sala ${code} não encontrada` });
+        send(socket, { type: "error", message: `Sala ${code} não encontrada` });
         return;
       }
       joinPending(pending, socket);
       break;
     }
 
-    case 'startGame': {
+    case "startGame": {
       // só o dono (primeiro da sala) pode dar o começar, e com 2+ presentes
       const pending = findPending(socket);
       if (
@@ -409,43 +417,43 @@ function onLobbyMessage(socket: WebSocket, raw: string): void {
 
 // Em produção o mesmo servidor entrega o jogo compilado (dist/) e o WebSocket;
 // em desenvolvimento o Vite serve o front e aqui fica só o WebSocket
-const DIST = join(import.meta.dirname, '..', 'dist');
+const DIST = join(import.meta.dirname, "..", "dist");
 
 const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
 };
 
 const httpServer = createServer(async (req, res) => {
   // em dev o front roda em outra porta (Vite); em produção é same-origin
-  const cors = { 'Access-Control-Allow-Origin': '*' };
-  const path = req.url?.split('?')[0] ?? '/';
+  const cors = { "Access-Control-Allow-Origin": "*" };
+  const path = req.url?.split("?")[0] ?? "/";
 
   // lista pública de salas (lida do SQLite) para o navegador de salas do menu
-  if (path === '/rooms') {
-    res.writeHead(200, { 'Content-Type': 'application/json', ...cors });
+  if (path === "/rooms") {
+    res.writeHead(200, { "Content-Type": "application/json", ...cors });
     res.end(JSON.stringify({ rooms: listRooms() }));
     return;
   }
 
   // histórico das últimas partidas (persistido — sobrevive a restarts)
-  if (path === '/matches') {
-    res.writeHead(200, { 'Content-Type': 'application/json', ...cors });
+  if (path === "/matches") {
+    res.writeHead(200, { "Content-Type": "application/json", ...cors });
     res.end(JSON.stringify({ matches: listMatches() }));
     return;
   }
 
   if (!existsSync(DIST)) {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Servidor Bomberman no ar (modo dev: o jogo é servido pelo Vite)');
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Servidor Bomberman no ar (modo dev: o jogo é servido pelo Vite)");
     return;
   }
 
-  const file = normalize(join(DIST, path === '/' ? 'index.html' : path));
+  const file = normalize(join(DIST, path === "/" ? "index.html" : path));
   if (!file.startsWith(DIST)) {
     res.writeHead(403).end();
     return;
@@ -454,20 +462,20 @@ const httpServer = createServer(async (req, res) => {
   try {
     const data = await readFile(file);
     res.writeHead(200, {
-      'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
+      "Content-Type": MIME[extname(file)] ?? "application/octet-stream",
     });
     res.end(data);
   } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Não encontrado');
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Não encontrado");
   }
 });
 
 const wss = new WebSocketServer({ server: httpServer });
 
-wss.on('connection', (socket) => {
-  socket.on('message', (raw) => onLobbyMessage(socket, raw.toString()));
-  socket.on('close', () => leavePending(socket));
+wss.on("connection", (socket) => {
+  socket.on("message", (raw) => onLobbyMessage(socket, raw.toString()));
+  socket.on("close", () => leavePending(socket));
 });
 
 // reinício do servidor: as conexões morreram, então as salas registradas
@@ -475,5 +483,7 @@ wss.on('connection', (socket) => {
 clearRooms();
 
 httpServer.listen(PORT, () => {
-  console.log(`Servidor Bomberman ouvindo em http://localhost:${PORT}`);
+  console.log(
+    `Servidor Bomberman ouvindo em ${PORT} (modo ${process.env.NODE_ENV ?? "desconhecido"})`,
+  );
 });

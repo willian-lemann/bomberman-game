@@ -196,6 +196,53 @@ function drawPowerUp(
   );
 }
 
+/** Cria um canvas offscreen desenhado uma única vez (gradiente é caro por frame) */
+function makeSprite(
+  size: number,
+  paint: (g: CanvasRenderingContext2D) => void,
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  paint(canvas.getContext('2d')!);
+  return canvas;
+}
+
+let explosionSprite: HTMLCanvasElement | null = null;
+let bombSprite: HTMLCanvasElement | null = null;
+
+function getExplosionSprite(): HTMLCanvasElement {
+  explosionSprite ??= makeSprite(TILE_SIZE * 1.5, (g) => {
+    const c = (TILE_SIZE * 1.5) / 2;
+    const grad = g.createRadialGradient(c, c, 3, c, c, TILE_SIZE * 0.72);
+    grad.addColorStop(0, '#fffbe8');
+    grad.addColorStop(0.35, '#fde047');
+    grad.addColorStop(0.75, '#f97316');
+    grad.addColorStop(1, 'rgba(249, 115, 22, 0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, TILE_SIZE * 1.5, TILE_SIZE * 1.5);
+  });
+  return explosionSprite;
+}
+
+const BOMB_SPRITE_R = 32; // raio folgado; drawImage reescala para o pulso
+
+function getBombSprite(): HTMLCanvasElement {
+  bombSprite ??= makeSprite(BOMB_SPRITE_R * 2, (g) => {
+    const r = BOMB_SPRITE_R;
+    const grad = g.createRadialGradient(
+      r - r * 0.35, r - r * 0.4, r * 0.15, r, r, r,
+    );
+    grad.addColorStop(0, '#4b5563');
+    grad.addColorStop(1, '#0b0f19');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.arc(r, r, r, 0, Math.PI * 2);
+    g.fill();
+  });
+  return bombSprite;
+}
+
 function drawBomb(
   ctx: CanvasRenderingContext2D,
   bomb: Bomb,
@@ -225,14 +272,8 @@ function drawBomb(
   ctx.arc(cx + r * 0.8, cy - r - 5, 3, 0, Math.PI * 2);
   ctx.fill();
 
-  // esfera com volume (gradiente radial)
-  const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.15, cx, cy, r);
-  grad.addColorStop(0, '#4b5563');
-  grad.addColorStop(1, '#0b0f19');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
+  // esfera pré-renderizada, reescalada pelo pulso
+  ctx.drawImage(getBombSprite(), cx - r, cy - r, r * 2, r * 2);
 }
 
 function drawExplosion(
@@ -242,16 +283,12 @@ function drawExplosion(
   const fade = explosion.timer / EXPLOSION_TIME; // 1 → 0
   ctx.globalAlpha = Math.min(1, fade * 1.4);
 
+  const sprite = getExplosionSprite();
+  const half = TILE_SIZE * 0.75;
   for (const { row, col } of explosion.cells) {
     const cx = (col + 0.5) * TILE_SIZE;
     const cy = (row + 0.5) * TILE_SIZE;
-    const grad = ctx.createRadialGradient(cx, cy, 3, cx, cy, TILE_SIZE * 0.72);
-    grad.addColorStop(0, '#fffbe8');
-    grad.addColorStop(0.35, '#fde047');
-    grad.addColorStop(0.75, '#f97316');
-    grad.addColorStop(1, 'rgba(249, 115, 22, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(cx - TILE_SIZE * 0.75, cy - TILE_SIZE * 0.75, TILE_SIZE * 1.5, TILE_SIZE * 1.5);
+    ctx.drawImage(sprite, cx - half, cy - half);
   }
 
   ctx.globalAlpha = 1;

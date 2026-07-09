@@ -16,10 +16,19 @@ document.querySelector('#btn-local')?.addEventListener('click', () => {
   startLocal();
 });
 
+let inSession = false;
+
 function beginOnline(request: LobbyRequest): void {
+  if (inSession) return; // uma sessão por vez — clique/tecla repetida não duplica
+  inSession = true;
+  // tira o foco do botão clicado: Espaço/Enter durante o jogo não podem "reclicar"
+  (document.activeElement as HTMLElement | null)?.blur?.();
   menu.hidden = true;
   // se der erro (sala inexistente, servidor fora do ar), volta ao menu
-  startOnline(ctx, statusEl, request, () => (menu.hidden = false));
+  startOnline(ctx, statusEl, request, () => {
+    inSession = false;
+    menu.hidden = false;
+  });
 }
 
 document.querySelector('#btn-quick')?.addEventListener('click', () => {
