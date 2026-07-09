@@ -46,7 +46,9 @@ function moveX(solid: SolidFn, p: Player, dx: number): boolean {
 
   for (let row = rowMin; row <= rowMax; row++) {
     if (solid(row, col)) {
-      p.x = sign > 0 ? col - R - EPS : col + 1 + R + EPS;
+      // encosta EXATAMENTE na parede: com raio de meia célula isso deixa o
+      // jogador alinhado ao centro do corredor, sem folga nem jitter
+      p.x = sign > 0 ? col - R : col + 1 + R;
       return true;
     }
   }
@@ -64,7 +66,7 @@ function moveY(solid: SolidFn, p: Player, dy: number): boolean {
 
   for (let col = colMin; col <= colMax; col++) {
     if (solid(row, col)) {
-      p.y = sign > 0 ? row - R - EPS : row + 1 + R + EPS;
+      p.y = sign > 0 ? row - R : row + 1 + R;
       return true;
     }
   }
@@ -80,6 +82,8 @@ function slideToRow(solid: SolidFn, p: Player, dirX: number, dist: number): void
   const target = row + 0.5;
   const step = Math.sign(target - p.y) * Math.min(dist, Math.abs(target - p.y));
   if (step !== 0) moveY(solid, p, step);
+  // alinha exatamente no centro (resíduo de ponto flutuante do passo a passo)
+  if (Math.abs(p.y - target) < 1e-6) p.y = target;
 }
 
 function slideToCol(solid: SolidFn, p: Player, dirY: number, dist: number): void {
@@ -90,4 +94,5 @@ function slideToCol(solid: SolidFn, p: Player, dirY: number, dist: number): void
   const target = col + 0.5;
   const step = Math.sign(target - p.x) * Math.min(dist, Math.abs(target - p.x));
   if (step !== 0) moveX(solid, p, step);
+  if (Math.abs(p.x - target) < 1e-6) p.x = target;
 }

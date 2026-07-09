@@ -6,8 +6,9 @@ export const GRID_ROWS = 13;
 export const BLOCK_DENSITY = 0.7;
 
 export const PLAYER_SPEED = 4.5; // células por segundo
-// Raio de colisão menor que meia célula para o movimento não "prender" nas quinas
-export const PLAYER_RADIUS = 0.36;
+// Meia célula: o jogador ocupa a célula INTEIRA — não há folga lateral nos
+// corredores; quem faz as curvas funcionarem é o deslizar-de-quina do movimento
+export const PLAYER_RADIUS = 0.5;
 
 export const BOMB_FUSE = 3; // segundos até explodir
 export const EXPLOSION_TIME = 0.45; // segundos de chama ativa

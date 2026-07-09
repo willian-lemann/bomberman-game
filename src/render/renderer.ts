@@ -68,7 +68,8 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
 
   for (const bomb of state.bombs) {
     drawables.push({
-      baseY: (bomb.row + 1) * TILE_SIZE - 2,
+      // base "recuada": quem pisa na bomba (ou está abaixo) desenha por cima
+      baseY: (bomb.row + 0.4) * TILE_SIZE,
       draw: () => drawBomb(ctx, bomb, state.elapsed),
     });
   }
