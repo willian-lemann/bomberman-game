@@ -11,13 +11,19 @@ import { movePlayer, type SolidFn } from './movement';
 import { updatePickups } from './powerups';
 import { Cell, type GameState, type Player, type PlayerInput } from './types';
 
-export function createGame(): GameState {
+// Um canto para cada jogador: P1 ↖, P2 ↘, P3 ↗, P4 ↙ (oposto do anterior)
+const SPAWNS: [number, number][] = [
+  [1.5, 1.5],
+  [GRID_COLS - 1.5, GRID_ROWS - 1.5],
+  [GRID_COLS - 1.5, 1.5],
+  [1.5, GRID_ROWS - 1.5],
+];
+
+export function createGame(playerCount = 2): GameState {
+  const count = Math.max(2, Math.min(playerCount, SPAWNS.length));
   return {
     grid: createMap(),
-    players: [
-      spawnPlayer(1, 1.5, 1.5), // canto superior esquerdo
-      spawnPlayer(2, GRID_COLS - 1.5, GRID_ROWS - 1.5), // canto inferior direito
-    ],
+    players: SPAWNS.slice(0, count).map(([x, y], i) => spawnPlayer(i + 1, x, y)),
     bombs: [],
     explosions: [],
     powerUps: [],

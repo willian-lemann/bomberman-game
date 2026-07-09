@@ -18,7 +18,8 @@ export const TILE_SIZE = 48;
 // altura "3D" dos cubos: paredes e blocos se erguem acima do chão
 const WALL_H = 14;
 
-const PLAYER_ACCENTS = ['#2563eb', '#dc2626']; // P1 azul, P2 vermelho
+// P1 azul, P2 vermelho, P3 verde, P4 roxo
+const PLAYER_ACCENTS = ['#2563eb', '#dc2626', '#16a34a', '#9333ea'];
 
 /** Algo desenhado de trás para frente, ordenado pela base (quanto mais
  *  embaixo na tela, mais na frente) — é o que dá a ilusão de profundidade */

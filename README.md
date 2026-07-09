@@ -35,13 +35,27 @@ endereço IP que aparecer.
 - `server/server.ts` — servidor **autoritativo**: roda a simulação com o mesmo
   `src/game/` e transmite o estado 60x/s. Em produção também serve o `dist/`.
 
+## Banco de dados (SQLite)
+
+Registro de salas e histórico de partidas ficam em SQLite (`node:sqlite`
+nativo, sem dependências). **Um banco por ambiente**:
+
+| Ambiente | Arquivo | Quando |
+| --- | --- | --- |
+| dev/local | `bomberman.dev.db` | padrão (`npm run server`) |
+| produção | `bomberman.prod.db` | `NODE_ENV=production` (o Docker já define) |
+
+`DB_PATH=/caminho/arquivo.db` sobrescreve qualquer um — use para apontar a um
+volume persistente no deploy. Endpoints: `GET /rooms` (salas ao vivo) e
+`GET /matches` (histórico, sobrevive a restarts).
+
 ## Deploy (produção)
 
 Um único processo serve o jogo e o WebSocket na mesma porta:
 
 ```bash
-npm run build   # gera dist/
-npm run start   # http + ws na porta $PORT (padrão 3001)
+npm run build                    # gera dist/
+NODE_ENV=production npm run start  # http + ws na porta $PORT (padrão 3001)
 ```
 
 ### Render.com (grátis, sem cartão)

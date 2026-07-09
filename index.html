@@ -87,21 +87,139 @@
         text-align: center;
         line-height: 1.6;
       }
+      #status-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 40px;
+      }
       #status {
         color: #e5e7eb;
         font-size: 16px;
-        min-height: 24px;
+      }
+      /* loader no centro do palco do jogo */
+      #spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 48px;
+        height: 48px;
+        margin: -24px 0 0 -24px;
+        border: 5px solid rgba(249, 115, 22, 0.25);
+        border-top-color: #f97316;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        pointer-events: none;
+        z-index: 5;
+      }
+      #spinner[hidden] {
+        display: none;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #btn-start {
+        font-size: 16px;
+        font-weight: 700;
+        padding: 8px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #16a34a;
+        color: #fff;
+      }
+      #btn-start:hover {
+        background: #22c55e;
+      }
+      #btn-start[hidden] {
+        display: none;
+      }
+      #create-row {
+        display: flex;
+        gap: 8px;
+        width: 320px;
+      }
+      #create-row input {
+        flex: 1;
+        min-width: 0;
+        font-size: 16px;
+        padding: 12px;
+        border: 2px solid #f97316;
+        border-radius: 10px;
+        background: #111827;
+        color: #e5e7eb;
+      }
+      #create-row button {
+        width: auto;
+        padding: 12px 20px;
+      }
+      #rooms {
+        width: 320px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 170px;
+        overflow-y: auto;
+      }
+      #rooms-title {
+        color: #9ca3af;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin: 0;
+      }
+      .room-btn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        padding: 10px 14px !important;
+        width: 100% !important;
+        background: #111827 !important;
+        border: 1px solid rgba(249, 115, 22, 0.5) !important;
+      }
+      .room-btn:hover:not(:disabled) {
+        background: #1f2937 !important;
+      }
+      .room-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .room-btn .count {
+        color: #fde047;
+        font-size: 13px;
+      }
+      #rooms-empty {
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
       }
     </style>
   </head>
   <body>
     <div id="stage">
       <canvas id="game"></canvas>
+      <div id="spinner" hidden></div>
       <div id="menu">
         <h1>💣 BOMBERMAN</h1>
-        <button id="btn-local">Local — 2 no teclado</button>
+
         <button id="btn-quick">Partida rápida online</button>
-        <button id="btn-create">Criar sala privada</button>
+        <div id="create-row">
+          <input
+            id="room-name"
+            maxlength="24"
+            placeholder="Nome da sua sala"
+            autocomplete="off"
+          />
+          <button id="btn-create">Criar</button>
+        </div>
+        <div id="rooms">
+          <p id="rooms-title">Salas abertas</p>
+          <div id="rooms-list"><p id="rooms-empty">Carregando salas...</p></div>
+        </div>
         <div id="join-row">
           <input
             id="join-code"
@@ -111,13 +229,12 @@
           />
           <button id="btn-join">Entrar</button>
         </div>
-        <p>
-          Local: P1 usa WASD + Espaço, P2 usa setas + Enter<br />
-          Online: WASD ou setas + Espaço (cada um no seu navegador)
-        </p>
       </div>
     </div>
-    <div id="status"></div>
+    <div id="status-row">
+      <div id="status"></div>
+      <button id="btn-start" hidden>Começar partida ▶</button>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
