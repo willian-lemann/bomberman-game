@@ -14,12 +14,17 @@ type ServerMessage =
   | { type: 'roomCreated'; code: string }
   | { type: 'error'; message: string }
   | { type: 'start'; playerId: number }
-  | { type: 'state'; state: GameState }
+  | { type: 'state'; state: GameState; acks: number[] }
   | { type: 'opponentLeft' };
 
 interface Client {
   socket: WebSocket;
+  /** pacotes de input numerados aguardando processamento (1 por tick) */
+  queue: { seq: number; input: PlayerInput }[];
+  /** último input aplicado — mantido quando a fila está vazia */
   input: PlayerInput;
+  /** seq do último pacote processado, ecoado no broadcast (ack) */
+  lastSeq: number;
   /** apertou bomba desde o último tick (não pode se perder entre frames) */
   pendingBomb: boolean;
 }
@@ -44,7 +49,9 @@ class Room {
   constructor(sockets: [WebSocket, WebSocket]) {
     this.clients = sockets.map((socket) => ({
       socket,
+      queue: [],
       input: idleInput(),
+      lastSeq: 0,
       pendingBomb: false,
     }));
 
@@ -61,7 +68,7 @@ class Room {
   }
 
   private onMessage(index: number, raw: string): void {
-    let msg: { type?: string; input?: Partial<PlayerInput> };
+    let msg: { type?: string; seq?: number; input?: Partial<PlayerInput> };
     try {
       msg = JSON.parse(raw);
     } catch {
@@ -70,29 +77,44 @@ class Room {
 
     if (msg.type === 'input' && msg.input) {
       const client = this.clients[index];
-      client.input = {
-        up: !!msg.input.up,
-        down: !!msg.input.down,
-        left: !!msg.input.left,
-        right: !!msg.input.right,
-        bomb: false, // bomba é evento, tratada via pendingBomb
-      };
+      client.queue.push({
+        seq: Number(msg.seq) || 0,
+        input: {
+          up: !!msg.input.up,
+          down: !!msg.input.down,
+          left: !!msg.input.left,
+          right: !!msg.input.right,
+          bomb: false, // bomba é evento, tratada via pendingBomb
+        },
+      });
       if (msg.input.bomb) client.pendingBomb = true;
+      // cliente travado/malicioso não acumula passos extras de movimento
+      if (client.queue.length > 120) client.queue.shift();
     } else if (msg.type === 'restart' && this.state.phase === 'over') {
       this.state = createGame();
     }
   }
 
   private tick(): void {
-    const inputs = this.clients.map((c) => ({
-      ...c.input,
-      bomb: c.pendingBomb,
-    }));
-    this.clients.forEach((c) => (c.pendingBomb = false));
+    // 1 pacote de input por tick: o ritmo do jogo é do servidor, não do cliente
+    const inputs = this.clients.map((client) => {
+      const packet = client.queue.shift();
+      if (packet) {
+        client.input = packet.input;
+        client.lastSeq = packet.seq;
+      }
+      const input = { ...client.input, bomb: client.pendingBomb };
+      client.pendingBomb = false;
+      return input;
+    });
 
     update(this.state, TICK_MS / 1000, inputs);
 
-    const msg: ServerMessage = { type: 'state', state: this.state };
+    const msg: ServerMessage = {
+      type: 'state',
+      state: this.state,
+      acks: this.clients.map((c) => c.lastSeq),
+    };
     for (const client of this.clients) {
       send(client.socket, msg);
     }

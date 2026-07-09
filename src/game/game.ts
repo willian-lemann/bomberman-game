@@ -69,7 +69,7 @@ export function update(
 }
 
 /** Colisão do ponto de vista de um jogador: grade + bombas que ele não atravessa */
-function solidFor(state: GameState, player: Player): SolidFn {
+export function solidFor(state: GameState, player: Player): SolidFn {
   return (row, col) => {
     const cell = state.grid[row]?.[col];
     if (cell === undefined || cell !== Cell.Floor) return true;
